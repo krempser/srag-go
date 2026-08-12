@@ -24,6 +24,11 @@ ausentes (`NaN`). As demais variáveis têm cada uma sua
 própria janela de disponibilidade (ver `outputs/tables/avaliacao_previa_variaveis.csv`
 e a coluna `frequencia_original` de `data/processed/coverage_report.csv`).
 
+
+## Fontes dos dados
+
+Todos os dados utilizados foram obtidos de fontes públicas e abertas de dados, especialmente baseadas no Ministério da Saúde do Brasil, no IBGE e no MapBiomas. Neste repositório, apenas os dados brutos de queimadas livremente disponibilizados pelo MapBiomas não foram aqui fornecidos por limitações de armazenamento, porém, podem ser diretamente recuperados do respectivo projeto: https://plataforma.monitorfogo.mapbiomas.org/ 
+
 ## Como rodar
 
 ```bash

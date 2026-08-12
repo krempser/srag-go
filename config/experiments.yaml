@@ -2,13 +2,13 @@
 # GRADE DE EXPERIMENTOS — cruzamento de todos os cenários
 # Cada combinação gera um experimento independente com todos os modelos.
 # Total: 2 (temporal) × 2 (municípios) × 2 (features) = 8 cenários
-#        × N modelos → resultados comparáveis para artigo/apresentação
+#        × N modelos -> resultados comparáveis para artigo/apresentação
 # ============================================================================
 
 # ---------------------------------------------------------------------------
 # DIMENSÃO 1 — Agrupamento temporal
-# "monthly"           → painel mensal padrão (município × mês)
-# "seasonal_humidity" → meses agrupados em 4 fases por umidade média
+# "monthly"           -> painel mensal padrão (município × mês)
+# "seasonal_humidity" -> meses agrupados em 4 fases por umidade média
 #                       (muito seco / seco / úmido / muito úmido)
 #                       Ver seasonal.n_phases e seasonal.humidity_variable
 # ---------------------------------------------------------------------------
@@ -18,14 +18,8 @@ temporal_groupings:
 
 # ---------------------------------------------------------------------------
 # DIMENSÃO 2 — Filtro de municípios
-# "all"        → todos os 246 municípios de GO
-# "cases_only" → apenas os 187 municípios com ≥1 caso histórico de SRAG
-#
-# NOTA: o filtro raramente muda métricas no painel temporal porque os
-# municípios sem casos são previstos corretamente (≈0) pelo modelo, e
-# removê-los exclui exatamente os pontos mais fáceis. No modo atemporal,
-# os municípios-zero são exemplos válidos de "baixo risco" e o filtro
-# pode reduzir a qualidade do modelo.
+# "all"        -> todos os 246 municípios de GO
+# "cases_only" -> apenas os 187 municípios com ≥1 caso histórico de SRAG
 # ---------------------------------------------------------------------------
 municipality_filters:
   - all
@@ -33,8 +27,8 @@ municipality_filters:
 
 # ---------------------------------------------------------------------------
 # DIMENSÃO 3 — Conjunto de variáveis (VACINAS e UTI/LEITOS: SEMPRE excluídos)
-# "social_and_environmental" → variáveis sociais + ambientais/climáticas
-# "environmental_only"       → APENAS ambiental/climático/meteorológico
+# "social_and_environmental" -> variáveis sociais + ambientais/climáticas
+# "environmental_only"       -> APENAS ambiental/climático/meteorológico
 #                              (sem PIB, CadÚnico, CAGED, APS, demografia)
 # ---------------------------------------------------------------------------
 feature_sets:
@@ -47,8 +41,6 @@ feature_sets:
 # Grupos OBRIGATÓRIOS (sempre entram, sem filtro):
 #   • Temporais/autorregressivas: lags, baseline, year_trend, sin/cos, fase_covid
 #   • Climáticas/meteorológicas: todas meteo_* e fogo_pct_territorio
-#   Razão: são o objeto científico central — eliminá-las impossibilitaria
-#   a simulação de mudanças climáticas.
 #
 # Grupo OPCIONAL (MapBiomas + variáveis sociais):
 #   Removidas features redundantes entre si (|ρ| > correlation_threshold),
@@ -76,7 +68,7 @@ seasonal:
 
 # ---------------------------------------------------------------------------
 # BUSCA DE HIPERPARÂMETROS (herdada de periods.yaml para cada experimento)
-# fast_mode: true → n_iter=5 (teste rápido, ~10 min); false → usa periods.yaml
+# fast_mode: true -> n_iter=5 (teste rápido, ~10 min); false -> usa periods.yaml
 # ---------------------------------------------------------------------------
 fast_mode: false
 fast_n_iter: 5
@@ -94,13 +86,13 @@ generate_plots: true
 # ---------------------------------------------------------------------------
 # SIMULAÇÃO (usada por simulate.py)
 # best_experiment_id: ID do experimento cujos modelos serão usados
-#   "auto" → seleciona automaticamente o de melhor Spearman_rho
+#   "auto" -> seleciona automaticamente o de melhor Spearman_rho
 # fill_missing_with: como preencher features não fornecidas na simulação
-#   "historical_median" → mediana histórica do painel (padrão)
-#   "last_observed"     → último valor observado por município
+#   "historical_median" -> mediana histórica do painel (padrão)
+#   "last_observed"     -> último valor observado por município
 # ---------------------------------------------------------------------------
 simulation:
   best_experiment_id: auto
   fill_missing_with: historical_median
-  output_cases: true       # converter taxa → nº esperado de casos (× população)
+  output_cases: true       # converter taxa -> nº esperado de casos (× população)
   population_source: "panel_monthly.csv"
