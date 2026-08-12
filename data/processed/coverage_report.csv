@@ -1,0 +1,32 @@
+variable,tipo,categoria,fonte_arquivo,frequencia_original,data_min_nativa,data_max_nativa,n_municipios_com_dado,pct_faltante_na_janela_nativa,entra_no_modelo,descricao
+cadunico_pct_pop,engenharia,engenharia_temporal,,,,,,,True,
+caged_taxa_pop,engenharia,engenharia_temporal,,,,,,,True,
+fase_covid,engenharia,engenharia_temporal,,,,,,,True,
+has_uti,engenharia,engenharia_temporal,,,,,,,True,
+month_cos,engenharia,engenharia_temporal,,,,,,,True,
+month_sin,engenharia,engenharia_temporal,,,,,,,True,
+pib_per_capita,engenharia,engenharia_temporal,,,,,,,True,
+srag_taxa_casos,engenharia,engenharia_temporal,,,,,,,True,
+srag_taxa_obitos,engenharia,engenharia_temporal,,,,,,,True,
+fogo_pct_territorio,primária,ambiental,processed/mapbiomas_fire_pct.csv,nativa,2017-01-01,2025-01-01,246.0,92.8,True,% do território municipal queimado no mês (MapBiomas Fire)
+mapbiomas_pct_farming,primária,ambiental,processed/mapbiomas_classes_pct.csv,anual→interpolada,1985-01-01,2024-01-01,246.0,0.0,True,% do território com uso Agropecuária (MapBiomas class_level_1=3. Farming)
+mapbiomas_pct_forest,primária,ambiental,processed/mapbiomas_classes_pct.csv,anual→interpolada,1985-01-01,2024-01-01,246.0,0.0,True,% do território com Floresta (MapBiomas class_level_1=1. Forest)
+mapbiomas_pct_non_forest_natural,primária,ambiental,processed/mapbiomas_classes_pct.csv,anual→interpolada,1985-01-01,2024-01-01,246.0,0.4,True,"% do território com Formação Natural Não Florestal (Cerrado, campo, etc.)"
+mapbiomas_pct_non_vegetated,primária,ambiental,processed/mapbiomas_classes_pct.csv,anual→interpolada,1985-01-01,2024-01-01,246.0,0.0,True,"% do território sem vegetação: área urbana, mineração, solo exposto"
+mapbiomas_pct_water,primária,ambiental,processed/mapbiomas_classes_pct.csv,anual→interpolada,1985-01-01,2024-01-01,246.0,0.0,True,"% do território com corpos d'água (rios, lagos, represas)"
+cadunico_pessoas,primária,assistencia_social,pessoas cadastradas no cadunico por municipio desde 2012.xlsx,nativa,2012-08-01,2026-05-01,246.0,0.9,False,Pessoas cadastradas no CadÚnico — base para cadunico_pct_pop
+meteo_precipitacao,primária,climatico,processed/meteorologico_go.csv,nativa,2017-01-01,2025-12-01,246.0,0.0,True,Precipitação total mensal (mm) — NASA POWER
+meteo_temp_amplitude,primária,climatico,processed/meteorologico_go.csv,nativa,2017-01-01,2025-12-01,246.0,0.0,True,Amplitude térmica mensal Tmax-Tmin (°C) — NASA POWER
+meteo_temp_max,primária,climatico,processed/meteorologico_go.csv,nativa,2017-01-01,2025-12-01,246.0,0.0,True,Temperatura máxima mensal (°C) — NASA POWER
+meteo_temp_media,primária,climatico,processed/meteorologico_go.csv,nativa,2017-01-01,2025-12-01,246.0,0.0,True,Temperatura média mensal (°C) — NASA POWER
+meteo_temp_min,primária,climatico,processed/meteorologico_go.csv,nativa,2017-01-01,2025-12-01,246.0,0.0,True,Temperatura mínima mensal (°C) — NASA POWER
+meteo_umidade,primária,climatico,processed/meteorologico_go.csv,nativa,2017-01-01,2025-12-01,246.0,0.0,True,Umidade relativa média mensal (%) — NASA POWER
+pct_pop_60mais,primária,demografia,% pop +59a mensal.csv,nativa,2009-07-01,2026-07-01,246.0,0.0,True,% da população com 60 anos ou mais (mensal)
+pct_pop_menor12,primária,demografia,% pop -12a mensal.csv,nativa,2009-07-01,2026-07-01,246.0,0.0,True,% da população com menos de 12 anos (mensal)
+populacao,primária,demografia,pop mensal.csv,nativa,2009-07-01,2026-07-01,246.0,0.0,False,"População residente estimada (mensal) — base para taxas, excluída do modelo direto"
+caged_saldo_emprego,primária,economia,caged_goias.xlsx,nativa,2020-01-01,2025-10-01,246.0,0.6,False,"Saldo de empregos formais (admissões - demissões), CAGED — base para caged_taxa_pop"
+pib_municipal,primária,economia,PIB_municipios_2010_2023.xlsx,anual→interpolada,2010-01-01,2023-01-01,246.0,0.0,False,"PIB municipal a preços correntes em R$ mil (anual, interpolado) — base para pib_per_capita"
+srag_casos,primária,epidemiologico,srag_total.csv,nativa,2019-01-01,2024-12-01,187.0,82.8,False,"Casos de SRAG notificados, agregados de semanal para mensal"
+srag_obitos,primária,epidemiologico,srag_total.csv,nativa,2019-01-01,2024-12-01,187.0,82.8,False,"Óbitos por SRAG notificados, agregados de semanal para mensal"
+cobertura_aps,primária,saude,cobertura_aps.csv,nativa,2021-01-01,2026-02-01,246.0,0.0,False,Cobertura de Atenção Primária à Saúde (%)
+leitos_uti,primária,saude,leitos de uti 2010 2026 por municipio.csv,nativa,2010-01-01,2026-04-01,31.0,90.7,False,Nº de leitos de UTI existentes — base para has_uti (binária). Manter aqui para análises de capacidade

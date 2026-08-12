@@ -1,0 +1,480 @@
+# ==============================================================================
+# REGISTRO DE VARIÁVEIS — núcleo da configurabilidade do pipeline
+# ==============================================================================
+# Para adicionar uma NOVA variável de origem externa:
+#   1) Colocar o arquivo bruto em data/raw/
+#   2) Acrescentar um bloco em `variables` abaixo
+#   3) Rodar `python run_pipeline.py`
+#
+# Para adicionar uma variável DERIVADA (calculada de outras já no painel):
+#   1) Acrescentar um bloco em `derived_variables` com type: ratio|binary|formula
+#   2) Rodar `python run_pipeline.py`
+#
+# Parsers disponíveis em src/io_utils.py:
+#   wide_year   -> 1 linha/município, 1 coluna/ANO
+#   wide_month  -> 1 linha/município, 1 coluna/MÊS
+#   long_weekly -> 1 linha/município-semana-ano (SRAG)
+#   long_month  -> 1 linha/município-mês, formato longo
+#   xlsx_long   -> idem, dentro de .xlsx, coluna de ano
+#   xlsx_long_date -> .xlsx, coluna de data MM/YYYY
+#   xlsx_long_ym   -> .xlsx, colunas ano + mes separadas
+#   wide_month_matrix_footer -> matriz larga com rodapés a ignorar
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# ALVO PRINCIPAL DO MODELO (taxa por 100k hab.)
+# O alvo bruto (srag_casos) continua no painel para referência/conferência.
+# ------------------------------------------------------------------------------
+model_target: srag_taxa_casos
+
+# ------------------------------------------------------------------------------
+# COLUNAS EXCLUÍDAS DO MODELO (mas mantidas no painel para referência)
+# Lógica: versões "brutas" substituídas por taxas derivadas abaixo, ou
+# variáveis que não devem entrar como features (alvos, populacao pura).
+# ------------------------------------------------------------------------------
+model_features_exclude:
+  - populacao             # NUNCA usar direta: casos/100k já controla escala
+  - srag_casos            # alvo bruto — usar srag_taxa_casos
+  - srag_obitos           # alvo alternativo bruto
+  - srag_taxa_obitos      # não entra como feature do modelo de casos
+  - leitos_uti            # substituído por has_uti (binária)
+  - cadunico_pessoas      # substituído por cadunico_pct_pop (taxa)
+  - caged_saldo_emprego   # substituído por caged_taxa_pop (taxa/1000 hab)
+  - pib_municipal         # substituído por pib_per_capita (R$/hab)
+  #### Exclui dados sociais e populacionais
+  - pib_municipal
+  - cobertura_aps
+  - has_uti
+  - cadunico_pct_pop
+  - caged_taxa_pop
+  - pib_per_capita
+
+
+# ------------------------------------------------------------------------------
+# ALVOS BRUTOS (notificação de SRAG — base semanal, agregada para mensal)
+# ------------------------------------------------------------------------------
+target:
+  srag_casos:
+    file: "srag_total.csv"
+    parser: long_weekly
+    encoding: latin1
+    sep: ";"
+    cols: {uf: "UF", municipio: "Município", semana: "Semana Epidemiológica",
+          ano: "Ano", cod_mun: "cod_mun", valor: "casos"}
+    agg: sum
+    category: epidemiologico
+    descricao: "Casos de SRAG notificados, agregados de semanal para mensal"
+
+  srag_obitos:
+    file: "srag_total.csv"
+    parser: long_weekly
+    encoding: latin1
+    sep: ";"
+    cols: {uf: "UF", municipio: "Município", semana: "Semana Epidemiológica",
+          ano: "Ano", cod_mun: "cod_mun", valor: "obitos"}
+    agg: sum
+    category: epidemiologico
+    descricao: "Óbitos por SRAG notificados, agregados de semanal para mensal"
+
+# ------------------------------------------------------------------------------
+# VARIÁVEIS DERIVADAS — calculadas APÓS a montagem do painel bruto
+# Tipos: ratio (numerador/denominador × multiplier) | binary (source > 0)
+# As versões originais continuam no painel para referência.
+# ------------------------------------------------------------------------------
+derived_variables:
+
+  srag_taxa_casos:
+    type: ratio
+    numerator: srag_casos
+    denominator: populacao
+    multiplier: 1000
+    category: epidemiologico
+    descricao: "Taxa de SRAG: casos / população (alvo do modelo)"
+
+  srag_taxa_obitos:
+    type: ratio
+    numerator: srag_obitos
+    denominator: populacao
+    multiplier: 1
+    category: epidemiologico
+    descricao: "Taxa de SRAG: óbitos / população"
+
+  has_uti:
+    type: binary
+    source: leitos_uti
+    uti_null_means_zero: true   # município sem registro = sem UTI
+    category: saude
+    descricao: "Município possui ≥1 leito de UTI cadastrado (1=sim, 0=não)"
+
+  cadunico_pct_pop:
+    type: ratio
+    numerator: cadunico_pessoas
+    denominator: populacao
+    multiplier: 100
+    category: assistencia_social
+    descricao: "Pessoas inscritas no CadÚnico como % da população"
+
+  caged_taxa_pop:
+    type: ratio
+    numerator: caged_saldo_emprego
+    denominator: populacao
+    multiplier: 1000
+    category: economia
+    descricao: "Saldo líquido de empregos formais por 1.000 habitantes (CAGED)"
+
+  pib_per_capita:
+    type: ratio
+    numerator: pib_municipal
+    numerator_scale: 1000      # PIB está em R$ mil → converter para R$
+    denominator: populacao
+    multiplier: 1
+    category: economia
+    descricao: "PIB per capita (R$/hab) — PIB municipal × 1000 / população"
+
+# ------------------------------------------------------------------------------
+# VARIÁVEIS PRIMÁRIAS (carregadas dos arquivos brutos)
+# ------------------------------------------------------------------------------
+variables:
+
+  # ---- Demografia ----
+  populacao:
+    file: "pop mensal.csv"
+    parser: wide_month
+    encoding: latin1
+    sep: ";"
+    cols: {cod_mun: "cod_mun", municipio: "Município"}
+    value_type: count
+    interpolate: false
+    category: demografia
+    descricao: "População residente estimada (mensal) — base para taxas, excluída do modelo direto"
+
+  pct_pop_60mais:
+    file: "% pop +59a mensal.csv"
+    parser: wide_month
+    encoding: latin1
+    sep: ";"
+    cols: {cod_mun: "cod_mun", municipio: "Município"}
+    value_type: percent
+    strip_pct: true
+    decimal: ","
+    interpolate: false
+    category: demografia
+    descricao: "% da população com 60 anos ou mais (mensal)"
+
+  pct_pop_menor12:
+    file: "% pop -12a mensal.csv"
+    parser: wide_month
+    encoding: latin1
+    sep: ";"
+    cols: {cod_mun: "cod_mun", municipio: "Município"}
+    value_type: percent
+    strip_pct: true
+    decimal: ","
+    interpolate: false
+    category: demografia
+    descricao: "% da população com menos de 12 anos (mensal)"
+
+  # ---- Economia ----
+  pib_municipal:
+    file: "PIB_municipios_2010_2023.xlsx"
+    parser: xlsx_long
+    sheet: "PIB dos Municípios"
+    cols: {cod_mun: "Código do Município", ano: "Ano",
+          valor: "Produto Interno Bruto, \na preços correntes\n(R$ 1.000)"}
+    value_type: currency_thousands
+    frequency: yearly
+    interpolate: true
+    category: economia
+    descricao: "PIB municipal a preços correntes em R$ mil (anual, interpolado) — base para pib_per_capita"
+
+  caged_saldo_emprego:
+    file: "caged_goias.xlsx"
+    parser: xlsx_long_ym
+    cols: {cod_mun: "id_municipio", ano: "ano", mes: "mes", valor: "saldo_emprego_total"}
+    cod_mun_is_7digit: true
+    value_type: count
+    interpolate: false
+    category: economia
+    descricao: "Saldo de empregos formais (admissões - demissões), CAGED — base para caged_taxa_pop"
+
+  # ---- Assistência social ----
+  cadunico_pessoas:
+    file: "pessoas cadastradas no cadunico por municipio desde 2012.xlsx"
+    parser: xlsx_long_date
+    sheet: "Tabela1"
+    cols: {cod_mun: "Código", data: "Referência",
+          valor: "Número total de pessoas cadastradas no Cadastro Único"}
+    date_format: "%m/%Y"
+    value_type: count
+    interpolate: false
+    category: assistencia_social
+    descricao: "Pessoas cadastradas no CadÚnico — base para cadunico_pct_pop"
+
+  # ---- Saúde ----
+  cobertura_aps:
+    file: "cobertura_aps.csv"
+    parser: long_month
+    encoding: latin1
+    sep: ";"
+    cols: {cod_mun: "cod_mun", data: "Comp. CNES", valor: "Cobertura APS"}
+    date_format: "%m/%Y"
+    value_type: percent
+    strip_pct: true
+    decimal: ","
+    interpolate: false
+    category: saude
+    descricao: "Cobertura de Atenção Primária à Saúde (%)"
+
+  leitos_uti:
+    file: "leitos de uti 2010 2026 por municipio.csv"
+    parser: wide_month_matrix_footer
+    encoding: latin1
+    sep: ";"
+    cod_mun_col: 0
+    municipio_col: 1
+    month_col_format: "%Y/%b"
+    month_col_locale: pt
+    value_type: count
+    missing_token: "-"
+    interpolate: false
+    category: saude
+    descricao: "Nº de leitos de UTI existentes — base para has_uti (binária). Manter aqui para análises de capacidade"
+
+  # ---- Vacinação ----
+#   vacina_bcg:
+#     file: "BCG.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal BCG (anual, interpolada para mensal)"
+
+#   vacina_dtp:
+#     file: "DTP.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal DTP (anual, interpolada) — alta colinearidade com pentavalente"
+
+#   vacina_pentavalente:
+#     file: "pentavalente.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal Pentavalente (anual, interpolada) — alta colinearidade com DTP"
+
+#   vacina_pneumococica:
+#     file: "pneumococica.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal Pneumocócica (anual, interpolada)"
+
+#   vacina_tetraviral:
+#     file: "tetra viral.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal Tetraviral (anual, interpolada)"
+
+#   vacina_triplice_viral_d1:
+#     file: "triplice_viralD1.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal Tríplice Viral D1 (anual, interpolada)"
+
+#   vacina_triplice_viral_d2:
+#     file: "triplice_viralD2.csv"
+#     parser: wide_year
+#     encoding: latin1
+#     sep: ";"
+#     cols: {cod_mun: "cod_mun", municipio: "Município"}
+#     value_type: percent
+#     decimal: ","
+#     interpolate: true
+#     category: vacinacao
+#     descricao: "Cobertura vacinal Tríplice Viral D2 (anual, interpolada)"
+
+# ==============================================================================
+# CAMADAS AMBIENTAIS (MapBiomas + ERA5-Land + qualidade do ar + fogo)
+# ==============================================================================
+# MapBiomas: arquivo gerado por src/convert_mapbiomas.py
+# ERA5-Land:  arquivo gerado por src/fetch_era5_land.py
+# Para incluir no modelo, as variáveis abaixo JÁ estão ativas.
+# Para ERA5 (ainda não gerado), descomente os blocos era5_* no final.
+# ------------------------------------------------------------------------------
+
+# MapBiomas — cobertura do solo (classes nível 1, Coleção 10.1)
+# Dados: 1985–2024, anuais (interpolados para mensal pelo pipeline)
+
+  mapbiomas_pct_farming:
+    file: "processed/mapbiomas_classes_pct.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "pct_farming"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: true
+    category: ambiental
+    descricao: "% do território com uso Agropecuária (MapBiomas class_level_1=3. Farming)"
+
+  mapbiomas_pct_forest:
+    file: "processed/mapbiomas_classes_pct.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "pct_forest"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: true
+    category: ambiental
+    descricao: "% do território com Floresta (MapBiomas class_level_1=1. Forest)"
+
+  mapbiomas_pct_non_forest_natural:
+    file: "processed/mapbiomas_classes_pct.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "pct_non_forest_natural_formation"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: true
+    category: ambiental
+    descricao: "% do território com Formação Natural Não Florestal (Cerrado, campo, etc.)"
+
+  mapbiomas_pct_non_vegetated:
+    file: "processed/mapbiomas_classes_pct.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "pct_non_vegetated_area"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: true
+    category: ambiental
+    descricao: "% do território sem vegetação: área urbana, mineração, solo exposto"
+
+  mapbiomas_pct_water:
+    file: "processed/mapbiomas_classes_pct.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "pct_water_and_marine_environment"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: true
+    category: ambiental
+    descricao: "% do território com corpos d'água (rios, lagos, represas)"
+
+# ---------------------------------------------------------------------------
+# METEOROLOGIA — NASA POWER (temperatura, precipitação, umidade)
+# Gerar com: python src/fetch_meteorologico.py --uf GO --years 2017-2025
+# Descomente os blocos abaixo após gerar data/processed/meteorologico_go.csv
+# ---------------------------------------------------------------------------
+
+  meteo_temp_media:
+    file: "processed/meteorologico_go.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "temp_media_c"}
+    date_format: "%Y-%m"
+    value_type: temperature
+    interpolate: false
+    category: climatico
+    descricao: "Temperatura média mensal (°C) — NASA POWER"
+
+  meteo_temp_min:
+    file: "processed/meteorologico_go.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "temp_min_c"}
+    date_format: "%Y-%m"
+    value_type: temperature
+    interpolate: false
+    category: climatico
+    descricao: "Temperatura mínima mensal (°C) — NASA POWER"
+
+  meteo_temp_max:
+    file: "processed/meteorologico_go.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "temp_max_c"}
+    date_format: "%Y-%m"
+    value_type: temperature
+    interpolate: false
+    category: climatico
+    descricao: "Temperatura máxima mensal (°C) — NASA POWER"
+
+  meteo_temp_amplitude:
+    file: "processed/meteorologico_go.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "temp_amplitude_c"}
+    date_format: "%Y-%m"
+    value_type: temperature
+    interpolate: false
+    category: climatico
+    descricao: "Amplitude térmica mensal Tmax-Tmin (°C) — NASA POWER"
+
+  meteo_precipitacao:
+    file: "processed/meteorologico_go.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "precip_mm"}
+    date_format: "%Y-%m"
+    value_type: precipitation
+    interpolate: false
+    category: climatico
+    descricao: "Precipitação total mensal (mm) — NASA POWER"
+
+  meteo_umidade:
+    file: "processed/meteorologico_go.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "umidade_relativa_pct"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: false
+    category: climatico
+    descricao: "Umidade relativa média mensal (%) — NASA POWER"
+
+# ---------------------------------------------------------------------------
+# FOGO — MapBiomas Fire (área queimada por município por mês)
+# Gerar com: python src/convert_mapbiomas_fire.py --file data/raw/mapbiomas_fire.xlsx
+# Descomente os blocos abaixo após gerar os CSVs de fogo
+# ---------------------------------------------------------------------------
+#
+#   fogo_area_ha:
+#     file: "processed/mapbiomas_fire_abs.csv"
+#     parser: long_month
+#     cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "area_ha"}
+#     date_format: "%Y-%m"
+#     value_type: count
+#     interpolate: false
+#     category: ambiental
+#     descricao: "Área queimada mensal em hectares (MapBiomas Fire)"
+#
+  fogo_pct_territorio:
+    file: "processed/mapbiomas_fire_pct.csv"
+    parser: long_month
+    cols: {cod_mun: "cod_mun", data: "ano_mes", valor: "pct_territorio_queimado"}
+    date_format: "%Y-%m"
+    value_type: percent
+    interpolate: false
+    category: ambiental
+    descricao: "% do território municipal queimado no mês (MapBiomas Fire)"

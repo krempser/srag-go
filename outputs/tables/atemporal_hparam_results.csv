@@ -1,0 +1,5 @@
+modelo,MAE_cv,param_alpha,param_n_estimators,param_min_samples_leaf,param_max_features,param_max_depth,param_l2_regularization,param_learning_rate,param_max_iter,param_colsample_bytree,param_reg_alpha,param_subsample
+Ridge,0.012011,75.7947995334801,,,,,,,,,,
+Random_Forest,0.011808,,100.0,3.0,sqrt,6.0,,,,,,
+GradientBoosting,0.010458,,,3.0,,5.0,0.0021618942406574433,0.016256670876862694,200.0,,,
+XGBoost,0.010241,,100.0,,,5.0,,0.04047170574812335,,0.9906459823330611,0.005313200931750459,0.8537405378805455

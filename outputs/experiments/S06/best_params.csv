@@ -1,0 +1,5 @@
+model,MAE_cv,param_alpha,param_max_iter,param_n_estimators,param_min_samples_leaf,param_max_features,param_max_depth,param_l2_regularization,param_learning_rate,param_colsample_bytree,param_reg_alpha,param_subsample
+Poisson_GLM,0.009788,0.0006713231619759604,5000.0,,,,,,,,,
+Random_Forest,0.008636,,,200.0,5.0,0.5,6.0,,,,,
+GradientBoosting,0.009467,,600.0,,5.0,,5.0,0.00042079886696066364,0.01699897838270077,,,
+XGBoost,0.008268,,,200.0,,,6.0,,0.020589728197687916,0.9329770563201687,0.122294675253906,0.8446612641953124

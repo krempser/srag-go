@@ -1,0 +1,7 @@
+{
+  "id": "S08",
+  "temporal_grouping": "seasonal_humidity",
+  "municipality_filter": "cases_only",
+  "feature_set": "environmental_only",
+  "label": "seasonal_humidity__cases_only__environmental_only"
+}

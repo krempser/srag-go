@@ -1,0 +1,10 @@
+Necessário um arquivo "goias_municipios.geojson" com os polígonos dos
+246 municípios de Goiás para geração automática de mapas.
+
+Requisitos do arquivo:
+  - FeatureCollection GeoJSON, Polygon ou MultiPolygon
+  - cada feature precisa ter, em "properties", um campo "id" ou
+    "codigo_ibge" com o código IBGE do município (6 ou 7 dígitos)
+
+Fonte utilizada:
+  https://servicodados.ibge.gov.br/api/v3/malhas/estados/GO?formato=application/vnd.geo+json&intrarregiao=municipio

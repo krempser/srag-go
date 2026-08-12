@@ -1,0 +1,7 @@
+{
+  "id": "S04",
+  "temporal_grouping": "monthly",
+  "municipality_filter": "cases_only",
+  "feature_set": "environmental_only",
+  "label": "monthly__cases_only__environmental_only"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "S01",
+  "temporal_grouping": "monthly",
+  "municipality_filter": "all",
+  "feature_set": "social_and_environmental",
+  "label": "monthly__all__social_and_environmental"
+}

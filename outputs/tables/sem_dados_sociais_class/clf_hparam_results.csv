@@ -1,0 +1,5 @@
+modelo,f1_weighted_cv,param_C,param_penalty,param_solver,param_n_estimators,param_min_samples_leaf,param_max_features,param_max_depth,param_l2_regularization,param_learning_rate,param_max_iter,param_colsample_bytree,param_reg_alpha,param_scale_pos_weight,param_subsample
+LogisticRegression,0.6536,73.92266140516048,l2,lbfgs,,,,,,,,,,,
+Random_Forest,0.7578,,,,400.0,1.0,0.3,,,,,,,,
+GradientBoosting,0.7363,,,,,5.0,,6.0,0.0016480446427978971,0.05958389350068958,200.0,,,,
+XGBoost,0.748,,,,600.0,,,6.0,,0.18531050294633017,,0.8783251227163527,0.001262423986895374,1.0,0.884459812975207

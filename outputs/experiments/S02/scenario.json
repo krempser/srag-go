@@ -1,0 +1,7 @@
+{
+  "id": "S02",
+  "temporal_grouping": "monthly",
+  "municipality_filter": "all",
+  "feature_set": "environmental_only",
+  "label": "monthly__all__environmental_only"
+}

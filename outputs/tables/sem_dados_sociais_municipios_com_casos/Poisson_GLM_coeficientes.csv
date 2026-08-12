@@ -1,0 +1,15 @@
+variavel,coeficiente
+meteo_temp_media,-1.357603758800398
+pct_pop_60mais,-1.2717496659742906
+pct_pop_menor12,-1.1788415872307256
+meteo_temp_max,0.7741161464030506
+meteo_temp_min,0.49162747628608594
+meteo_temp_amplitude,0.2557158448484833
+mapbiomas_pct_water,0.22710807351711285
+fogo_pct_territorio,0.1126010158200719
+mapbiomas_pct_forest,-0.07062489812061414
+mapbiomas_pct_non_forest_natural,-0.06569659589106426
+meteo_precipitacao,0.05248024233957953
+meteo_umidade,-0.04940010860846289
+mapbiomas_pct_farming,0.03343531086900629
+mapbiomas_pct_non_vegetated,0.02570196331194074

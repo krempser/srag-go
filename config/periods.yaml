@@ -1,0 +1,140 @@
+# ============================================================================
+# CONFIGURAÇÃO DE PERÍODO, GRANULARIDADE, FILTROS E RECURSOS COMPUTACIONAIS
+# ============================================================================
+
+frequency: monthly
+date_start: "2017-01"
+date_end: "2025-12"
+geo_level: municipio
+uf: GO
+
+highlight_municipios:
+  - "GOIANIA"
+  - "APARECIDA DE GOIANIA"
+  - "ANAPOLIS"
+
+# ---------------------------------------------------------------------------
+# SEPARAÇÃO TREINO / TESTE
+# Critério: cronológico puro — os últimos N meses observados são hold-out.
+# NÃO há embaralhamento; garante zero vazamento temporal.
+# ---------------------------------------------------------------------------
+test_holdout_months: 6
+
+# ---------------------------------------------------------------------------
+# FILTRO DE MUNICÍPIOS
+# false → todos os 246 municípios (padrão recomendado — ver nota abaixo)
+# true  → apenas municípios que tiveram ≥1 caso em qualquer mês
+#
+# POR QUE ESSE FILTRO QUASE NÃO MUDA OS RESULTADOS:
+#   Os 59 municípios sem nenhum caso histórico de SRAG têm target=0 em
+#   100% dos meses. O modelo já prevê ~0 para eles (features socioeconômicas
+#   também indicam baixo risco). Contribuição ao MAE ≈ 0 antes e depois
+#   do filtro. Remover esses municípios é remover os pontos que o modelo
+#   JÁ ACERTA. O erro real vem dos 187 municípios COM casos — especialmente
+#   nos meses de surto, que as features estáticas não conseguem prever.
+#
+#   No modo ATEMPORAL, o filtro é CONTRAPRODUCENTE: os 59 municípios zero
+#   são exemplos válidos de "baixo risco estrutural" — removê-los faz o
+#   modelo perder contraste e piorar a discriminação de risco.
+# ---------------------------------------------------------------------------
+apenas_municipios_com_casos: false
+
+# ---------------------------------------------------------------------------
+# RECURSOS COMPUTACIONAIS
+# A máquina tem 32 processadores; usamos até 24 nos modelos e na busca.
+# ---------------------------------------------------------------------------
+n_processadores: 24
+
+# ---------------------------------------------------------------------------
+# BUSCA DE HIPERPARÂMETROS
+# Método: RandomizedSearchCV com TimeSeriesSplit (respeita a ordem temporal
+# do painel — splits em datas, não em linhas individuais).
+#
+# hparam_n_iter  → tentativas aleatórias por modelo (custo: n_iter × cv_folds
+#                   treinamentos por modelo). 50 é razoável para 24 CPUs.
+# hparam_cv_folds → folds do TimeSeriesSplit (treino/validação dentro do treino)
+# hparam_scoring  → métrica de otimização (neg_mean_absolute_error recomendado
+#                   para dados com muitos zeros; neg_mean_poisson_deviance
+#                   é alternativa para dados de contagem/taxa)
+# ---------------------------------------------------------------------------
+hparam_n_iter:  50
+hparam_cv_folds: 5
+hparam_scoring: neg_mean_absolute_error
+
+# ---------------------------------------------------------------------------
+# MODO DO MODELO
+# "regression"      → prediz a taxa contínua de SRAG (modo atual)
+# "classification"  → discretiza a taxa em faixas e classifica
+# ---------------------------------------------------------------------------
+model_mode: classification
+
+# Configuração do modo de classificação (ignorado se model_mode=regression)
+#
+# classification_strategy:
+#   "zero_plus_quantile" → classe 0 = zero casos; demais divididas em
+#                          (classification_n_bins - 1) quantis dos positivos
+#                          RECOMENDADO: respeita a natureza zero-inflada dos dados
+#   "quantile"           → N quantis sobre todos os valores (incluindo zeros)
+#   "custom"             → usar classification_thresholds abaixo
+#
+# classification_n_bins: número total de classes (incluindo a classe zero)
+#
+# classification_thresholds: usado apenas se strategy="custom"
+#   Lista de limiares da TAXA (srag_casos/populacao).
+#   Ex: [0.00005, 0.0005] → 3 classes: [0, 5e-5), [5e-5, 5e-4), [5e-4, ∞)
+# ---------------------------------------------------------------------------
+classification_strategy: zero_plus_quantile
+classification_n_bins: 4
+# classification_thresholds: [0.00005, 0.0005]
+
+# ---------------------------------------------------------------------------
+# MODO ATEMPORAL
+# Agrega município × mês → 1 linha por município usando a função configurada.
+# Remove completamente a dimensão temporal: o modelo responde "quais municípios
+# têm perfil de maior risco de SRAG", sem prever quando.
+#
+# atemporal: true/false
+# atemporal_aggregation:
+#   "median" → mediana (robusta a outliers, recomendada; pode ser 0 em munic. com poucos casos)
+#   "mean"   → média (mais sensível a surtos esporádicos)
+#   "max"    → pico histórico (indica potencial máximo do município)
+#   "q75"    → 3º quartil (perfil de municípios no período mais intenso)
+# atemporal_cv_folds: folds de validação cruzada k-fold nos municípios
+#                     (não precisa de TimeSeriesSplit — sem dimensão temporal)
+# ---------------------------------------------------------------------------
+atemporal: true
+atemporal_aggregation: median
+atemporal_cv_folds: 5
+
+# ---------------------------------------------------------------------------
+# ENGENHARIA DE FEATURES TEMPORAIS
+# Ativar/desativar individualmente. Impacto esperado no Spearman ρ:
+#
+#  lag_months + add_seasonality   → +0.15 a +0.25 ρ (MAIOR IMPACTO)
+#  add_covid_phase                 → +0.05 a +0.15 ρ (reduz confundimento)
+#  log_transform_target            → melhora MAPE, pouco efeito no ρ
+#
+# NOTA SOBRE LAGS:
+#   - Lags criam NaN nos primeiros N meses de cada município (os modelos
+#     imputam com a mediana — impute_features em models.py)
+#   - Lag 1: "casos do mês passado" → maior impacto
+#   - Lag 12: "casos no mesmo mês do ano anterior" → captura sazonalidade
+#   - Não usar lags se o objetivo for predizer municípios SEM histórico
+#
+# NOTA SOBRE log_transform:
+#   Se ativo, o alvo do modelo passa a ser log(taxa + 1e-7).
+#   Mude model_target para "log_srag_taxa_casos" manualmente após ativar.
+# ---------------------------------------------------------------------------
+temporal_engineering:
+  lag_months: []        # lags em meses — vazio [] = desativado
+  add_seasonality: true          # sin/cos do mês (sazonalidade cíclica)
+  add_covid_phase: true          # indicador 0=pré 1=COVID(2020-22) 2=pós
+  log_transform_target: false    # log(taxa+ε) como alvo (experimental)
+
+# ---------------------------------------------------------------------------
+# EXCLUSÃO DE ANOS
+# Anos excluídos de TREINO E TESTE. Usar para remover período pandêmico
+# (COVID 2020-2022 distorce a relação clima-SRAG).
+# Com exclusão: treino=2019+2023, teste=2024
+# ---------------------------------------------------------------------------
+exclude_years: [2020, 2021, 2022]

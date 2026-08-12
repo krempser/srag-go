@@ -1,0 +1,5 @@
+modelo,acuracia,acuracia_ponderada,f1_weighted,f1_macro
+LogisticRegression,0.6538,0.4054,0.7453,0.2991
+Random_Forest,0.8862,0.4286,0.8918,0.4206
+GradientBoosting,0.7832,0.4605,0.8361,0.3852
+XGBoost,0.9112,0.3716,0.896,0.4029
